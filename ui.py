@@ -23,8 +23,6 @@ QTabBar::tab:selected { color:#1f2733; border-bottom:2px solid #7c5295; }
 QPushButton { background:#eef2f7; border:1px solid #dbe2ec; border-radius:8px; padding:7px 12px;
               font-weight:600; color:#1f2733; }
 QPushButton:hover { background:#e4eaf2; }
-QPushButton#primary { background:#7c5295; border-color:#7c5295; color:#ffffff; padding:8px 16px; }
-QPushButton#primary:hover { background:#684087; }
 QTextEdit, QLineEdit { border:1px solid #dbe2ec; border-radius:10px; padding:5px 8px; background:#ffffff; }
 QCheckBox { spacing:5px; color:#3a4556; }
 QCheckBox::indicator { width:16px; height:16px; border:1px solid #c6ceda; border-radius:4px;
@@ -204,9 +202,9 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _btn_css_start() -> str:
-        """Engine start/stop button - running state: solid grape-purple."""
+        """Engine start/stop button - primary action: larger, solid grape-purple."""
         return ("QPushButton{background:#7c5295;border:1px solid #7c5295;color:#ffffff;"
-                "border-radius:8px;padding:7px 16px;font-weight:600;}"
+                "border-radius:8px;padding:9px 24px;font-weight:700;font-size:15px;}"
                 "QPushButton:hover{background:#684087;}"
                 "QPushButton:pressed{background:#5f4580;}")
 
@@ -214,15 +212,23 @@ class MainWindow(QMainWindow):
     def _btn_css_stop() -> str:
         """Engine start/stop button - stop state: light grey."""
         return ("QPushButton{background:#e2e6ec;border:1px solid #cfd7e1;color:#5a6472;"
-                "border-radius:8px;padding:7px 16px;font-weight:600;}"
+                "border-radius:8px;padding:9px 24px;font-weight:700;font-size:15px;}"
                 "QPushButton:hover{background:#d5dbe4;}"
                 "QPushButton:pressed{background:#c8d0da;}")
+
+    @staticmethod
+    def _btn_css_secondary() -> str:
+        """Secondary action buttons (Apply & Save / Restore Defaults): muted grey outline."""
+        return ("QPushButton{background:#eef2f7;border:1px solid #dbe2ec;color:#3a4353;"
+                "border-radius:8px;padding:8px 16px;font-weight:600;}"
+                "QPushButton:hover{background:#e3e9f0;}"
+                "QPushButton:pressed{background:#d6dee8;}")
 
     @staticmethod
     def _btn_css_launch() -> str:
         """Launch Game button - a slightly deeper grape-purple than the primary buttons."""
         return ("QPushButton{background:#5f4580;border:1px solid #5f4580;color:#ffffff;"
-                "border-radius:8px;padding:7px 16px;font-weight:600;}"
+                "border-radius:8px;padding:9px 20px;font-weight:700;font-size:14px;}"
                 "QPushButton:hover{background:#4f3970;}"
                 "QPushButton:pressed{background:#432f5e;}")
 
@@ -278,7 +284,13 @@ class MainWindow(QMainWindow):
         for c, text in enumerate(("Slot", "Custom", "Target", "On")):
             h = QLabel(text)
             h.setObjectName("panelHint")
-            grid.addWidget(h, 0, c, Qt.AlignLeft)
+            if c == 3:
+                # Align the header with the checkbox's label text (skip the 16px
+                # indicator box + 5px spacing), so the column titles line up with
+                # the controls below them.
+                h.setContentsMargins(21, 0, 0, 0)
+            grid.addWidget(h, 0, c, Qt.AlignLeft | Qt.AlignVCenter)
+        grid.setRowStretch(0, 0)
 
         # 6 data rows
         self.slot_rows: list[dict] = []
@@ -294,26 +306,26 @@ class MainWindow(QMainWindow):
             chk = QCheckBox("On")
             chk.setChecked(slot.enabled)
             grid.addWidget(lbl, r + 1, 0, Qt.AlignLeft | Qt.AlignVCenter)
-            grid.addWidget(cap, r + 1, 1, Qt.AlignLeft)
-            grid.addWidget(tgt, r + 1, 2, Qt.AlignLeft)
-            grid.addWidget(chk, r + 1, 3, Qt.AlignLeft)
+            grid.addWidget(cap, r + 1, 1, Qt.AlignLeft | Qt.AlignVCenter)
+            grid.addWidget(tgt, r + 1, 2, Qt.AlignLeft | Qt.AlignVCenter)
+            grid.addWidget(chk, r + 1, 3, Qt.AlignLeft | Qt.AlignVCenter)
+            grid.setRowStretch(r + 1, 1)   # spread the 6 rows to fill the board (no dead gap)
             self.slot_rows.append({"label": lbl, "capture": cap,
                                    "target": tgt, "chk": chk})
         bg.addLayout(grid)
-        lv.addWidget(board)
+        lv.addWidget(board, 1)
 
         save_row = QHBoxLayout()
+        save_row.setSpacing(10)
         save_btn = QPushButton("Apply & Save")
-        save_btn.setObjectName("primary")
+        save_btn.setStyleSheet(self._btn_css_secondary())
         save_btn.clicked.connect(self._save_and_apply)
-        save_row.addWidget(save_btn)
         reset_btn = QPushButton("Restore Defaults")
-        reset_btn.setObjectName("primary")
+        reset_btn.setStyleSheet(self._btn_css_secondary())
         reset_btn.clicked.connect(self._reset_defaults)
-        save_row.addWidget(reset_btn)
-        save_row.addStretch(1)
+        save_row.addWidget(save_btn, 1)
+        save_row.addWidget(reset_btn, 1)
         lv.addLayout(save_row)
-        lv.addStretch(1)
         root.addWidget(left, 1)
 
         # ── Right: hotkey overview (with rebinding) ──
@@ -330,9 +342,9 @@ class MainWindow(QMainWindow):
         rv.addWidget(rh)
         rv.addSpacing(2)
 
-        self.toggle_key = KeyCaptureLineEdit(self.cfg.toggle_code, size=(84, 32), font_size=12)
-        self.show_ally_toggle_key = KeyCaptureLineEdit(self.cfg.show_ally_toggle_code, size=(84, 32), font_size=12)
-        self.show_enemy_toggle_key = KeyCaptureLineEdit(self.cfg.show_enemy_toggle_code, size=(84, 32), font_size=12)
+        self.toggle_key = KeyCaptureLineEdit(self.cfg.toggle_code, size=(104, 34), font_size=11)
+        self.show_ally_toggle_key = KeyCaptureLineEdit(self.cfg.show_ally_toggle_code, size=(104, 34), font_size=11)
+        self.show_enemy_toggle_key = KeyCaptureLineEdit(self.cfg.show_enemy_toggle_code, size=(104, 34), font_size=11)
 
         rows = [
             ("⌨", "Inventory Hotkeys", "toggle → triggers slot default key", self.toggle_key, "act"),
@@ -367,7 +379,8 @@ class MainWindow(QMainWindow):
             rv.addLayout(row)
             rv.addSpacing(9)
 
-        # Launch Game - its own dedicated area at the bottom of the overview
+        # Launch Game - its own dedicated area pinned to the bottom of the overview
+        rv.addStretch(1)
         lg = QGroupBox("Launch")
         lv2 = QVBoxLayout(lg)
         lv2.setSpacing(6)
@@ -382,7 +395,6 @@ class MainWindow(QMainWindow):
         lv2.addWidget(self.launch_btn)
         rv.addWidget(lg)
         rv.addSpacing(10)
-        rv.addStretch(1)
         root.addWidget(right, 0)
 
         return w
