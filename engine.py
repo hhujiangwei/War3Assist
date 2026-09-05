@@ -27,6 +27,13 @@ from ctypes import (
 GET_ASYNC_KEY_STATE = 0x8000
 POLL_INTERVAL = 0.02  # main-loop poll interval (sec), ~50 Hz
 
+# Fixed engine-start defaults (no longer exposed in the UI):
+# inventory hotkeys start off (toggled by Delete), both sides' HP start on
+# (toggled by PageDown/PageUp). All three are controlled live by hotkeys.
+STARTUP_ACTIVE = False
+STARTUP_SHOW_ALLY = True
+STARTUP_SHOW_ENEMY = True
+
 # ── Low-level keyboard hook (swallow custom keys) ──
 HC_ACTION = 0
 WH_KEYBOARD_LL = 13
@@ -181,7 +188,7 @@ class AssistantEngine(QThread):
         self._cfg = cfg
         self._reset_pending = False
         self._running = False
-        self._active_cached = bool(cfg.active_default)
+        self._active_cached = STARTUP_ACTIVE
         # ── low-level hook thread state ──
         self._hook = None          # hook handle from SetWindowsHookEx
         self._proc = None          # keep callback reference to prevent GC crashes
@@ -190,7 +197,7 @@ class AssistantEngine(QThread):
         # hook callback -> main loop pending-send queue (thread-safe)
         self._hook_queue: Queue = Queue()
         # live snapshot for the callback, refreshed by the main loop; callback only does O(1) checks
-        self._cache_active = bool(cfg.active_default)
+        self._cache_active = STARTUP_ACTIVE
         self._cache_focused = False
         self._cache_codes: frozenset[int] = frozenset()   # enabled custom-key set
         self._cache_map: dict[int, tuple] = {}            # custom key -> (default, idx, label)
@@ -209,11 +216,11 @@ class AssistantEngine(QThread):
 
     def run(self) -> None:
         self._running = True
-        active = self.cfg.active_default
+        active = STARTUP_ACTIVE
         self._active_cached = active
         show_all = self.cfg.show_all_default
-        show_ally = self.cfg.show_ally_default
-        show_enemy = self.cfg.show_enemy_default
+        show_ally = STARTUP_SHOW_ALLY
+        show_enemy = STARTUP_SHOW_ENEMY
         self.active_changed.emit(active)
         self.show_hp = ShowHp()
         hh = self.show_hp
@@ -232,7 +239,7 @@ class AssistantEngine(QThread):
                 if self._reset_pending:
                     self._reset_pending = False
                     last_toggle = last_all = last_ally = last_enemy = False
-                    self._active_cached = active = self.cfg.active_default
+                    self._active_cached = active = STARTUP_ACTIVE
 
             # refresh live snapshot for the hook callback (O(1) checks)
             hwnd = war3_hwnd()

@@ -189,12 +189,6 @@ class MainWindow(QMainWindow):
         self.start_btn.setStyleSheet(self._btn_css_start())
         self.start_btn.clicked.connect(self._toggle_engine)
         st.addWidget(self.start_btn)
-        self.launch_btn = QPushButton("⚐ Launch Game")
-        self.launch_btn.setStyleSheet(self._btn_css_launch())
-        self.launch_btn.setToolTip("Launch Warcraft III. First click (or if the path is "
-                                   "missing) opens a file picker to locate the game.")
-        self.launch_btn.clicked.connect(self._launch_game)
-        st.addWidget(self.launch_btn)
         outer.addWidget(eng)
 
         tabs = QTabWidget()
@@ -232,18 +226,21 @@ class MainWindow(QMainWindow):
                 "QPushButton:hover{background:#4f3970;}"
                 "QPushButton:pressed{background:#432f5e;}")
 
+    @staticmethod
+    def _dot_style(on: bool) -> str:
+        """Inline background color for a status dot (reliable in both IDE and EXE)."""
+        return "QLabel{background:%s;border-radius:5px;}" % ("#2eaf6b" if on else "#c6ceda")
+
     def _dot(self, on: bool) -> QLabel:
         lab = QLabel()
-        lab.setObjectName("dotOn" if on else "dotOff")
         lab.setFixedSize(10, 10)
+        lab.setStyleSheet(self._dot_style(on))
         return lab
 
     @staticmethod
     def _set_dot(dot: QLabel, on: bool) -> None:
-        """Flip a status dot's object name so the stylesheet recolors it green/off."""
-        dot.setObjectName("dotOn" if on else "dotOff")
-        dot.style().unpolish(dot)
-        dot.style().polish(dot)
+        """Repaint a status dot green/off via inline style (reliable in EXE builds)."""
+        dot.setStyleSheet(MainWindow._dot_style(on))
 
     def _build_hotkey_tab(self) -> QWidget:
         w = QWidget()
@@ -370,18 +367,21 @@ class MainWindow(QMainWindow):
             rv.addLayout(row)
             rv.addSpacing(9)
 
-        # Startup defaults
-        grp = QGroupBox("Enable on Startup")
-        g = QGridLayout(grp)
-        g.setSpacing(6)
-        self.default_active = QCheckBox("Hotkeys")
-        self.default_show_ally = QCheckBox("Ally")
-        self.default_show_enemy = QCheckBox("Enemy")
-        g.addWidget(self.default_active, 0, 0)
-        g.addWidget(self.default_show_ally, 0, 1)
-        g.addWidget(self.default_show_enemy, 1, 0)
-        rv.addWidget(grp)
-        rv.addSpacing(14)
+        # Launch Game - its own dedicated area at the bottom of the overview
+        lg = QGroupBox("Launch")
+        lv2 = QVBoxLayout(lg)
+        lv2.setSpacing(6)
+        li = QLabel("Launch Warcraft III")
+        li.setObjectName("panelHint")
+        lv2.addWidget(li)
+        self.launch_btn = QPushButton("⚐ Launch Game")
+        self.launch_btn.setStyleSheet(self._btn_css_launch())
+        self.launch_btn.setToolTip("Launch Warcraft III. First click (or if the path is "
+                                   "missing) opens a file picker to locate the game.")
+        self.launch_btn.clicked.connect(self._launch_game)
+        lv2.addWidget(self.launch_btn)
+        rv.addWidget(lg)
+        rv.addSpacing(10)
         rv.addStretch(1)
         root.addWidget(right, 0)
 
@@ -390,11 +390,8 @@ class MainWindow(QMainWindow):
     # ────────────────────────── Config sync ──────────────────────────
     def _apply_config_to_ui(self):
         self.toggle_key.set_code(self.cfg.toggle_code)
-        self.default_active.setChecked(self.cfg.active_default)
         self.show_ally_toggle_key.set_code(self.cfg.show_ally_toggle_code)
-        self.default_show_ally.setChecked(self.cfg.show_ally_default)
         self.show_enemy_toggle_key.set_code(self.cfg.show_enemy_toggle_code)
-        self.default_show_enemy.setChecked(self.cfg.show_enemy_default)
         for i, s in enumerate(self.cfg.slots):
             if i < len(self.slot_rows):
                 row = self.slot_rows[i]
@@ -405,11 +402,8 @@ class MainWindow(QMainWindow):
     def _collect_cfg(self) -> AppConfig:
         cfg = AppConfig(slots=[])
         cfg.toggle_code = self.toggle_key.code
-        cfg.active_default = self.default_active.isChecked()
         cfg.show_ally_toggle_code = self.show_ally_toggle_key.code
-        cfg.show_ally_default = self.default_show_ally.isChecked()
         cfg.show_enemy_toggle_code = self.show_enemy_toggle_key.code
-        cfg.show_enemy_default = self.default_show_enemy.isChecked()
         for i, row in enumerate(self.slot_rows):
             cfg.slots.append(SlotConfig(
                 i, f"Slot {i + 1}", row["target"].code, row["capture"].code,
@@ -458,6 +452,14 @@ class MainWindow(QMainWindow):
 
     # ────────────────────────── Engine control ──────────────────────────
     def _toggle_engine(self):
+        try:
+            self._toggle_engine_impl()
+        except Exception:
+            import traceback
+            self._log("Engine toggle error: "
+                      + traceback.format_exc().replace("\n", " | "))
+
+    def _toggle_engine_impl(self):
         if self.engine and self.engine.isRunning():
             self.engine.stop()
             self.engine = None
@@ -469,6 +471,8 @@ class MainWindow(QMainWindow):
             self._set_dot(self.hp_dot_all, False)
             self._set_dot(self.hp_dot_ally, False)
             self._set_dot(self.hp_dot_enemy, False)
+            self.hp_label.setText("　HP: off")
+            self.hp_label.setStyleSheet("font-weight:bold;color:#888;")
             self._log("Engine stopped.")
             return
         self.cfg = self._collect_cfg()

@@ -1,12 +1,9 @@
 {
   "toggle_code": 46,
-  "active_default": true,
   "show_all_toggle_code": 145,
   "show_ally_toggle_code": 219,
   "show_enemy_toggle_code": 221,
   "show_all_default": false,
-  "show_ally_default": true,
-  "show_enemy_default": true,
   "game_path": "",
   "slots": [
     {

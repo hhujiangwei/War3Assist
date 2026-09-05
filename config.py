@@ -46,14 +46,11 @@ class SlotConfig:
 @dataclass
 class AppConfig:
     toggle_code: int = 46            # inventory-hotkeys toggle, default Delete
-    active_default: bool = False     # enable inventory hotkeys on startup
     # HP bars: natively hold the War3 bar key to show ally/enemy HP per faction
     show_all_toggle_code: int = 145  # show ALL hp, default Scroll Lock
     show_ally_toggle_code: int = 34  # show ally hp (hold '['), default PageDown
     show_enemy_toggle_code: int = 33  # show enemy hp (hold ']'), default PageUp
     show_all_default: bool = False
-    show_ally_default: bool = False
-    show_enemy_default: bool = False
     game_path: str = ""                      # path to War3 executable for "Launch Game"
     slots: list[SlotConfig] = field(default_factory=list)
 
@@ -70,9 +67,36 @@ class AppConfig:
         ]
 
 
+# Persisted config dir for frozen single-file builds (cached after first hit).
+_CONFIG_DIR: str | None = None
+
+
 def _config_path() -> str:
-    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base, "config.json")
+    if not getattr(sys, "frozen", False):
+        base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base, "config.json")
+    # Single-file build: keep persistent config outside the temp unpack dir so
+    # it survives restarts. Try candidates in order and use the first writable
+    # one, so the tool never crashes on a locked-down user data folder.
+    global _CONFIG_DIR
+    if _CONFIG_DIR:
+        return os.path.join(_CONFIG_DIR, "config.json")
+    candidates = []
+    for base in (os.environ.get("LOCALAPPDATA"),
+                 os.environ.get("APPDATA"),
+                 os.path.dirname(sys.executable)):
+        if base:
+            candidates.append(os.path.join(base, "War3Assist"))
+    for data_dir in candidates:
+        try:
+            os.makedirs(data_dir, exist_ok=True)
+            _CONFIG_DIR = data_dir
+            return os.path.join(data_dir, "config.json")
+        except OSError:
+            continue
+    # Last resort: exe folder (may be read-only under Program Files, best effort).
+    _CONFIG_DIR = os.path.dirname(sys.executable)
+    return os.path.join(_CONFIG_DIR, "config.json")
 
 
 def _log_config_error(path: str) -> None:
@@ -100,8 +124,7 @@ def load_config() -> AppConfig:
         v = data.get(key, getattr(cfg, key))
         setattr(cfg, key, v if isinstance(v, int) else getattr(cfg, key))
     # Each default switch: fall back to default on invalid type
-    for key in ("active_default", "show_all_default",
-                "show_ally_default", "show_enemy_default"):
+    for key in ("show_all_default",):
         v = data.get(key, getattr(cfg, key))
         setattr(cfg, key, v if isinstance(v, bool) else getattr(cfg, key))
     v = data.get("game_path", cfg.game_path)
@@ -126,15 +149,15 @@ def load_config() -> AppConfig:
 def save_config(cfg: AppConfig) -> None:
     data = {
         "toggle_code": cfg.toggle_code,
-        "active_default": cfg.active_default,
         "show_all_toggle_code": cfg.show_all_toggle_code,
         "show_ally_toggle_code": cfg.show_ally_toggle_code,
         "show_enemy_toggle_code": cfg.show_enemy_toggle_code,
         "show_all_default": cfg.show_all_default,
-        "show_ally_default": cfg.show_ally_default,
-        "show_enemy_default": cfg.show_enemy_default,
         "game_path": cfg.game_path,
         "slots": [asdict(s) for s in cfg.slots],
     }
-    with open(_config_path(), "w", encoding="utf-8") as fh:
-        json.dump(data, fh, ensure_ascii=False, indent=2)
+    try:
+        with open(_config_path(), "w", encoding="utf-8") as fh:
+            json.dump(data, fh, ensure_ascii=False, indent=2)
+    except OSError as exc:
+        print(f"[config] Failed to persist config: {exc}", file=sys.stderr)
