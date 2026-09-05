@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import os
+import sys
 
-from PySide6.QtCore import QProcess, Qt
+from PySide6.QtCore import QEvent, QProcess, Qt, QTimer
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
-    QCheckBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QLabel,
-    QLineEdit, QMainWindow, QMessageBox, QPushButton, QTabWidget, QTextEdit,
-    QVBoxLayout, QWidget,
+    QApplication, QCheckBox, QFileDialog, QFrame, QGridLayout, QGroupBox,
+    QHBoxLayout, QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QPushButton,
+    QSystemTrayIcon, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
 )
 
 import config
@@ -153,6 +155,8 @@ class MainWindow(QMainWindow):
         self.engine: AssistantEngine | None = None
         self._build_ui()
         self._apply_config_to_ui()
+        self._tray_exit = False
+        self._build_tray()
 
     # ────────────────────────── UI layout ──────────────────────────
     def _build_ui(self):
@@ -199,6 +203,50 @@ class MainWindow(QMainWindow):
         self.log_view.setFixedHeight(88)
         outer.addWidget(QLabel("Log:", objectName="panelHint"))
         outer.addWidget(self.log_view)
+
+    @staticmethod
+    def _asset(name: str) -> str:
+        """Locate a bundled asset, compatible with PyInstaller single-file (frozen) mode."""
+        base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base, "assets", name)
+
+    # ────────────────────────── System tray ──────────────────────────
+    def _build_tray(self):
+        self.tray = QSystemTrayIcon(self)
+        icon_path = self._asset("app_icon.jpeg")
+        if os.path.exists(icon_path):
+            self.tray.setIcon(QIcon(icon_path))
+            self.tray.setToolTip("Warcraft III Assistant")
+        self.tray.setContextMenu(self._tray_menu())
+        self.tray.activated.connect(self._on_tray_activated)
+        self.tray.show()
+
+    def _tray_menu(self) -> QMenu:
+        menu = QMenu()
+        restore = QAction("Show main window", self)
+        restore.triggered.connect(self._show_window)
+        quit_act = QAction("Exit", self)
+        quit_act.triggered.connect(self._quit_app)
+        menu.addAction(restore)
+        menu.addSeparator()
+        menu.addAction(quit_act)
+        return menu
+
+    def _on_tray_activated(self, reason):
+        # Double-click on the tray icon restores the main window.
+        if reason == QSystemTrayIcon.Trigger or reason == QSystemTrayIcon.DoubleClick:
+            self._show_window()
+
+    def _show_window(self):
+        self.show()
+        self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def _quit_app(self):
+        self._tray_exit = True
+        QApplication.quit()
 
     @staticmethod
     def _btn_css_start() -> str:
@@ -529,6 +577,14 @@ class MainWindow(QMainWindow):
             return
         self.hp_label.setText("　HP: " + text)
         self.hp_label.setStyleSheet("font-weight:bold;color:#27ae60;")
+
+    def changeEvent(self, e):
+        # Minimize to system tray instead of the taskbar.
+        if e.type() == QEvent.WindowStateChange and (self.windowState() & Qt.WindowMinimized):
+            if not self._tray_exit:
+                QTimer.singleShot(0, self.hide)
+            return
+        super().changeEvent(e)
 
     def closeEvent(self, e):
         if self.engine and self.engine.isRunning():
