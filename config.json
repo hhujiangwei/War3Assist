@@ -1,0 +1,55 @@
+{
+  "toggle_code": 46,
+  "active_default": true,
+  "show_all_toggle_code": 145,
+  "show_ally_toggle_code": 219,
+  "show_enemy_toggle_code": 221,
+  "show_all_default": false,
+  "show_ally_default": true,
+  "show_enemy_default": true,
+  "game_path": "",
+  "slots": [
+    {
+      "slot_index": 0,
+      "label": "Slot 1",
+      "default_code": 103,
+      "custom_code": 32,
+      "enabled": false
+    },
+    {
+      "slot_index": 1,
+      "label": "Slot 2",
+      "default_code": 104,
+      "custom_code": 81,
+      "enabled": true
+    },
+    {
+      "slot_index": 2,
+      "label": "Slot 3",
+      "default_code": 100,
+      "custom_code": 90,
+      "enabled": true
+    },
+    {
+      "slot_index": 3,
+      "label": "Slot 4",
+      "default_code": 101,
+      "custom_code": 86,
+      "enabled": false
+    },
+    {
+      "slot_index": 4,
+      "label": "Slot 5",
+      "default_code": 97,
+      "custom_code": 66,
+      "enabled": false
+    },
+    {
+      "slot_index": 5,
+      "label": "Slot 6",
+      "default_code": 98,
+      "custom_code": 78,
+      "enabled": false
+    }
+  ]
+}

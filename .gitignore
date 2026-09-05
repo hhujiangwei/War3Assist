@@ -1,0 +1,5 @@
+# Python / build artifacts (not part of the source repo)
+__pycache__/
+*.pyc
+build/
+dist/
