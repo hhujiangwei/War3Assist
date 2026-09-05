@@ -6,8 +6,8 @@ import os
 from PySide6.QtCore import QProcess, Qt
 from PySide6.QtWidgets import (
     QCheckBox, QFileDialog, QFrame, QGridLayout, QGroupBox, QHBoxLayout, QLabel,
-    QLineEdit, QMainWindow, QPushButton, QTabWidget, QTextEdit, QVBoxLayout,
-    QWidget,
+    QLineEdit, QMainWindow, QMessageBox, QPushButton, QTabWidget, QTextEdit,
+    QVBoxLayout, QWidget,
 )
 
 import config
@@ -424,7 +424,11 @@ class MainWindow(QMainWindow):
 
     def _save_and_apply(self):
         self.cfg = self._collect_cfg()
-        config.save_config(self.cfg)
+        if not config.save_config(self.cfg):
+            QMessageBox.warning(
+                self, "Save Failed",
+                f"Could not write settings to:\n{config._config_path()}")
+            return
         if self.engine and self.engine.isRunning():
             self.engine.update_cfg(self.cfg)
         self._log("Settings saved and applied.")
@@ -456,7 +460,11 @@ class MainWindow(QMainWindow):
                 self._log("No game executable selected.")
                 return
             self.cfg.game_path = chosen
-            config.save_config(self.cfg)
+            if not config.save_config(self.cfg):
+                QMessageBox.warning(
+                    self, "Save Failed",
+                    f"Could not write settings to:\n{config._config_path()}")
+                return
             self._log(f"Game path saved: {chosen}. Click Launch Game again to start.")
             return
         if QProcess.startDetached(path):

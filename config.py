@@ -146,7 +146,8 @@ def load_config() -> AppConfig:
     return cfg
 
 
-def save_config(cfg: AppConfig) -> None:
+def save_config(cfg: AppConfig) -> bool:
+    """Persist cfg to disk. Returns True on success, False on write failure."""
     data = {
         "toggle_code": cfg.toggle_code,
         "show_all_toggle_code": cfg.show_all_toggle_code,
@@ -159,5 +160,7 @@ def save_config(cfg: AppConfig) -> None:
     try:
         with open(_config_path(), "w", encoding="utf-8") as fh:
             json.dump(data, fh, ensure_ascii=False, indent=2)
+        return True
     except OSError as exc:
         print(f"[config] Failed to persist config: {exc}", file=sys.stderr)
+        return False
