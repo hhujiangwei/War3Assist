@@ -28,9 +28,9 @@ GET_ASYNC_KEY_STATE = 0x8000
 POLL_INTERVAL = 0.02  # main-loop poll interval (sec), ~50 Hz
 
 # Fixed engine-start defaults (no longer exposed in the UI):
-# inventory hotkeys start off (toggled by Delete), both sides' HP start on
+# inventory hotkeys start on (toggled by Delete), both sides' HP start on
 # (toggled by PageDown/PageUp). All three are controlled live by hotkeys.
-STARTUP_ACTIVE = False
+STARTUP_ACTIVE = True
 STARTUP_SHOW_ALLY = True
 STARTUP_SHOW_ENEMY = True
 

@@ -202,11 +202,11 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _btn_css_start() -> str:
-        """Engine start/stop button - primary action: larger, solid grape-purple."""
-        return ("QPushButton{background:#7c5295;border:1px solid #7c5295;color:#ffffff;"
+        """Engine start/stop button - primary action: larger, deep grape-purple (same as Launch Game)."""
+        return ("QPushButton{background:#5f4580;border:1px solid #5f4580;color:#ffffff;"
                 "border-radius:8px;padding:9px 24px;font-weight:700;font-size:15px;}"
-                "QPushButton:hover{background:#684087;}"
-                "QPushButton:pressed{background:#5f4580;}")
+                "QPushButton:hover{background:#4f3970;}"
+                "QPushButton:pressed{background:#432f5e;}")
 
     @staticmethod
     def _btn_css_stop() -> str:
@@ -443,8 +443,9 @@ class MainWindow(QMainWindow):
 
     # ────────────────────────── Game launch ──────────────────────────
     def _launch_game(self):
-        """Launch Warcraft III. First click (or a stale/missing saved path) opens a file
-        picker; once a valid path is stored, later clicks start the game directly."""
+        """Launch Warcraft III. If no valid game path is saved yet, this click only
+        opens the file picker and stores the chosen path (returns to the main UI,
+        does not start the game). The next click on Launch Game starts the game."""
         path = (self.cfg.game_path or "").strip()
         if not path or not os.path.isfile(path):
             start_dir = os.path.dirname(path) if path else os.path.expanduser("~")
@@ -456,7 +457,8 @@ class MainWindow(QMainWindow):
                 return
             self.cfg.game_path = chosen
             config.save_config(self.cfg)
-            path = chosen
+            self._log(f"Game path saved: {chosen}. Click Launch Game again to start.")
+            return
         if QProcess.startDetached(path):
             self._log(f"Launching Warcraft III: {path}")
         else:

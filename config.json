@@ -10,21 +10,21 @@
       "slot_index": 0,
       "label": "Slot 1",
       "default_code": 103,
-      "custom_code": 32,
+      "custom_code": 90,
       "enabled": false
     },
     {
       "slot_index": 1,
       "label": "Slot 2",
       "default_code": 104,
-      "custom_code": 81,
+      "custom_code": 88,
       "enabled": true
     },
     {
       "slot_index": 2,
       "label": "Slot 3",
       "default_code": 100,
-      "custom_code": 90,
+      "custom_code": 67,
       "enabled": true
     },
     {
