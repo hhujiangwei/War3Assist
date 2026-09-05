@@ -412,7 +412,12 @@ class MainWindow(QMainWindow):
                 row["target"].set_code(s.default_code)
 
     def _collect_cfg(self) -> AppConfig:
-        cfg = AppConfig(slots=[])
+        # Start from current cfg so fields not edited in the UI (game_path,
+        # show_all settings) survive being later persisted via save_config.
+        cfg = AppConfig()
+        cfg.game_path = (self.cfg.game_path or "").strip()
+        cfg.show_all_toggle_code = self.cfg.show_all_toggle_code
+        cfg.show_all_default = self.cfg.show_all_default
         cfg.toggle_code = self.toggle_key.code
         cfg.show_ally_toggle_code = self.show_ally_toggle_key.code
         cfg.show_enemy_toggle_code = self.show_enemy_toggle_key.code
